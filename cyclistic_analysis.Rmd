@@ -1,0 +1,243 @@
+---
+title: "Informe_Ciclystic"
+author: "VCRA"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# CYCLISTIC
+
+
+## Introducción
+Cyclistic es un programa de bicicletas compartidas con sede en Chicago, Estados Unidos. El programa ofrece una alternativa de transporte conveniente e inclusiva para residentes y visitantes. 
+
+Este ejercicio busca responder a la pregunta de ¿Cómo lograr el éxito de un negocio de bicicletas?. Para ello, se busca responder tres preguntas:
+
+1. ¿En qué se diferencian los socios anuales y los ciclistas ocasionales con respecto al uso de las bicicletas de Cyclistic?
+2. ¿Por qué los ciclistas ocasionales comparían membresias anuales de Cyclistic?
+3. ¿Cómo puede usar Cyclistic los medios digitales para influenciar a los ciclistas ocasionales a convertirse en miembros?
+
+Se utilizaron para ello los datos de la empresa entre los meses de diciembre de 2023 a diciembre de 2024
+
+### Instalación de paquetes y librerias necesarios:
+
+
+```{r}
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("rmarkdown")
+library("tidyverse")
+library("lubridate")
+library("ggplot2")
+library("dplyr")
+library("rmarkdown")
+```
+
+### Setear el directorio desde el que se trabajará
+
+```{r}
+getwd()
+setwd("/cloud/project/q")
+list.files() ##chequear que se haya cargado correctamente el directorio
+list.files(path = "/cloud/project/q", pattern = "*.csv")
+```
+
+### Configurar data frames
+```{r}
+q1 <- read_csv("/cloud/project/q/q1.csv")
+q2 <- read_csv("/cloud/project/q/q2.csv")
+q3 <- read_csv("/cloud/project/q/q3.csv")
+q4 <- read_csv("/cloud/project/q/q4.csv")
+```
+## Manejo de data frames
+
+Se trabaja con cuatro archivos correspondientes a trimestres, los cuales, se combinarán en uno sólo una vez que se haya chequeado el contenido general de los cuatro archivos.
+
+### Comparar columnas y chequear que correspondan entre si
+
+```{r}
+colnames(q1)
+colnames(q2)
+colnames(q3)
+colnames(q4)
+```
+
+### Inspeccionar el data frame
+
+```{r}
+str(q1)
+str(q2)
+str(q3)
+str(q4)
+```
+
+## Combinar los 4 dataframes en una 
+
+```{r}
+all_trips <- bind_rows(q1, q2, q3, q4)
+```
+
+# Procesamiento de datos
+
+## Convertir variables temporales 
+
+```{r}
+str(all_trips)
+    #started y ended at
+all_trips <- all_trips %>%
+  mutate(
+    started_at = dmy_hm(started_at),  # Convertir a formato fecha-hora
+    ended_at = dmy_hm(ended_at)       # Convertir a formato fecha-hora
+  )
+
+
+    #ride length
+all_trips <- all_trips %>%
+  mutate(
+    ride_length = as.numeric(difftime(ended_at, started_at, units = "mins"))
+  )
+
+```
+
+
+
+### Añadir columnas de dia, mes, año de cada viaje
+```{r}
+all_trips$date <- as.Date(all_trips$started_at)
+all_trips$month <- format(as.Date(all_trips$date),"%m")
+all_trips$day <- format(as.Date(all_trips$date),"%d")
+all_trips$year <- format(as.Date(all_trips$date),"%y")
+all_trips$day_of_week <- format(as.Date(all_trips$date), "%A")
+
+str(all_trips)
+```
+
+
+
+# Análisis descriptivo
+```{r}
+summary(all_trips)
+```
+
+## Análisis temporal
+
+## Descriptivo de duración de los viajes
+```{r}
+mean(all_trips$ride_length)
+median(all_trips$ride_length)
+max(all_trips$ride_length)
+min(all_trips$ride_length)
+sd(all_trips$ride_length, na.rm = TRUE)  # Desviación estándar
+```
+La duración media de cada viaje corresponde a 16,58 minutos, con una duración máxima por viaje de 1499 minutos. A su vez la desviación estandar corresponde a 35,53 nos indica que existe una alta dispersión de la duración de los viajes.
+
+
+## Descriptivo de cantidad de viajes por día de semana. 
+```{r}
+all_trips %>%
+  mutate(weekday = wday(started_at, label = TRUE, abbr = FALSE)) %>%
+  group_by(weekday) %>%
+  summarise(total_rides = n()) %>%
+  arrange(weekday)
+
+```
+Al respecto de la cantidad total de viajes por día de la semana, es posible observar que los dias domingo y martes se cuentan la menor cantidad de viajes, aumentando el flujo entre los días miércoles y sábado.
+
+## Análisis por tipo de usuario (Casual v/s Member)
+
+### Número de viajes por tipo de usuario
+```{r}
+
+all_trips %>%
+  count(member_casual)
+```
+Es posible observar que, anualmente, los miembros de Cyclistic realizan casi un 50% más de viajes.
+
+### Duración promedio del viaje por tipo de usuario
+
+```{r}
+all_trips %>%
+  group_by(member_casual) %>%
+  summarise(
+    avg_ride_length = mean(ride_length, na.rm = TRUE),
+    median_ride_length = median(ride_length, na.rm = TRUE),
+    sd_ride_length = sd(ride_length, na.rm = TRUE)
+  )
+```
+
+En relación a la duración de los viajes, los usuarios casuales viajan en promedio 24,01 minutos, con una desviación estándar de 49.89 minutos, lo que sugiere que existe mayor variabilidad en los tiempos de viaje a diferencia de los miembros quienes viajaron en promedio 12.51 minutos, con una menor variabilidad en los tiempos de viaje, lo que indica que éstos realizan viajes más uniformes que los usuarios casuales. 
+
+
+### Comparación de tiempos de viaje por tipo de usuario
+```{r}
+aggregate(all_trips$ride_length~all_trips$member_casual, FUN=max)
+aggregate(all_trips$ride_length~all_trips$member_casual, FUN=min)
+```
+La duración máxima de viaje de los usuarios casuales alcanza los 1499 minutos, mientras que en los miembros alcanza los 1490 minutos.
+
+
+### Tiempo promedio de viaje por dia de la semana y tipo de usuario
+
+```{r}
+all_trips %>%
+  mutate(weekday = wday(started_at, label = TRUE, abbr = FALSE)) %>%  # Extrae el día de la semana con nombre completo
+  group_by(member_casual, weekday) %>%
+  summarise(
+    number_of_rides = n(),
+    average_duration = mean(ride_length, na.rm = TRUE)  # Evita errores con valores NA
+  ) %>%
+  arrange(member_casual, weekday)
+
+```
+Los usuarios casuales realizan una menor cantidad de viajes con una duración mayor, siendo los dias de fin de semana los que cuentan con mayor cantidad de viajes, lo cual sugiere que este tipo de usuario realiza mayor cantidad de viajes durante los fines de semana con fines probablemente recreativos y turísticos, mientras que los miembros realizan una mayor cantidad de viajes durante días de semana con una menos duración que los usuarios casuales, lo cual indica que probablemte sean personas que utilizan este medio de transporte para trasladarse hacia sus trabajos. 
+
+
+
+
+# Análisis visual
+
+
+### Número de Viajes por Tipo de Usuario y Día de la Semana
+
+```{r}
+all_trips%>%
+  mutate(weekday=wday(started_at, label=TRUE)
+  )%>%
+  group_by(member_casual, weekday)%>%
+  summarise(number_of_rides=n(), 
+            average_duration=mean(ride_length))%>%
+  arrange(member_casual, weekday)%>%
+  ggplot(aes(x=weekday, y=number_of_rides, fill=member_casual))+
+  geom_col(position="dodge")+  labs(title = "Número de viajes por día de la semana",
+                                    x = "Día de la semana", 
+                                    y = "Número de viajes") +
+  theme_minimal()
+
+```
+En esta visualización es posible identificar los días de la semana donde los usuarios casuales aumentan la cantidad de viajes, siendo particularmente entre los días viernes y domingo.
+
+### Visualizacion por duracion promedio de viaje por tipo de usuario y dia de la semana.
+```{r}
+all_trips%>%
+  mutate(weekday=wday(started_at, label=TRUE))%>%
+  group_by(member_casual, weekday)%>%
+  summarise(number_of_rides=n(), 
+            average_duration=mean(ride_length))%>%
+  arrange(member_casual, weekday)%>%
+  ggplot(aes(x=weekday, y=average_duration, fill=member_casual))+
+  geom_col(position="dodge") + labs(title = "Número de viajes por día de la semana",
+                                    x = "Día de la semana", 
+                                    y = "Número de viajes") +
+  theme_minimal()
+```
+Esta visualización refleja que los tiempos de viaje de los usuarios casuales es siempre mayor a quienes son miembros de Cyclistic, particularmente entre los días de fin de semana.
+
+# Conclusiones
+
+Se evidencia que los usuarios con membresía utilizan las bicicletas de una manera distinta que los que son usuarios casuales, esto debido a que los datos sugieren que los miembros utilizarían estos medios de transporte durante días laborales, con el objetivo de ir y retornar de sus hogares a sus trabajos, a diferencia de los usuarios casuales que utilizan las bicicletas principalmente en fines de semana, para viajes más largos y con objetivos recreacionales principalmente. 
+
+Se requieren estrategias de marketing y campañas en medios digitales que atraigan al ciclista ocasional para que compren membresias anuales, con ofertas especiales para favorecer desplazamiento recreativo, por ejemplo, con rutas turísticas en alianzas con productoras de eventos o empresas de turismo local. 
