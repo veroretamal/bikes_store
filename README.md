@@ -20,9 +20,4 @@ Este repositorio contiene un análisis exploratorio de datos de viajes en bicicl
 3. Ejecuta el código y genera el informe.
 
 ## 📩 Contacto
-Si tienes dudas, contáctame a mi correo veronicaretamalarriagada@gmail.com.
-
-.Rhistory
-.project.Rproj
-.tmp-pdfcrop-3678.tex
-
+Si tienes dudas o algún comentario, contáctame a mi correo veronicaretamalarriagada@gmail.com.
