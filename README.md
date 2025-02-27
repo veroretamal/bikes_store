@@ -1,7 +1,7 @@
 # 🚴‍♂️ bikes_store
 Analysis of the "Cyclistic" bicycle rental company
 
-Este repositorio contiene un análisis exploratorio de datos de viajes en bicicleta utilizando **R y RMarkdown**.
+Este repositorio contiene un análisis exploratorio de una muestra de datos de viajes en bicicleta utilizando **R y RMarkdown**.
 
 ## 📂 Contenido
 - `cyclistic_analysis.Rmd`: Archivo principal con el código y análisis.
